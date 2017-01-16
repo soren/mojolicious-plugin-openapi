@@ -32,7 +32,7 @@ sub register {
 
   $self->{log_level} = $ENV{MOJO_OPENAPI_LOG_LEVEL} || $config->{log_level} || 'warn';
   $self->{renderer} = $config->{renderer} || \&_render_json;
-  $self->_validator->schema($api_spec->data)->coerce($config->{coerce} // 1);
+  $self->_validator->coerce($config->{coerce} // 1);
   $self->_add_routes($app, $api_spec, $config);
 }
 
