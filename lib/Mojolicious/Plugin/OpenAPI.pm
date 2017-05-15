@@ -140,7 +140,7 @@ sub _helper_spec {
 
 sub _cors_simple {
   my ($c, $cb) = @_;
-  my $res = {};
+  my $req = {};
 
   # Run default simple CORS checks
   my $method = uc $c->req->method;
@@ -149,12 +149,12 @@ sub _cors_simple {
   my $req_headers = $c->req->headers;
   my $ct = $req_headers->content_type || '';
   return $c unless grep { $ct eq $_ } @CORS_SIMPLE_CONTENT_TYPES;
-  return $c unless $res->{origin} = $req_headers->header('Origin');
+  return $c unless $req->{origin} = $req_headers->header('Origin');
 
-  # Allow the callback to make up the deciscion if this is a valid CORS request
-  $c->tap($cb, $res);
+  # Allow the callback to make up the decision if this is a valid CORS request
+  $c->tap($cb, $req);
 
-  # Valid CORS request if the header is set
+  # Valid CORS request if the callback set the Access-Control-Allow-Origin header
   return $c if $c->res->headers->header('Access-Control-Allow-Origin');
 
   # Invalid if no header is set
@@ -385,6 +385,20 @@ right to the L<tutorial|Mojolicious::Plugin::OpenAPI::Guides::Tutorial>.
 L<Mojolicious::Plugin::OpenAPI> will replace L<Mojolicious::Plugin::Swagger2>.
 
 =head1 HELPERS
+
+=head2 openapi.cors_simple
+
+  $c = $c->openapi->cors_simple("MyApp::simple_cors_validator");
+  $c = $c->openapi->cors_simple(sub { my ($c, $req) = @_ });
+
+This helper can be used for simple CORS requests. It takes either a reference
+to a function or the name of a function to use. This function will be called
+with the current controller object and a hash containing information about the
+CORS request. Here is an example:
+
+  MyApp::simple_cors_validator($c, {origin => "http://example.com"});
+
+This helper is EXPERIMENTAL and subject to change.
 
 =head2 openapi.spec
 
