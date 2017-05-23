@@ -129,8 +129,11 @@ sub _before_render {
 
 sub _helper_spec {
   my ($c, $path) = @_;
-  return $c->stash('openapi.op_spec') unless defined $path;
-  return $c->stash('openapi.api_spec')->get($path);
+  my $spec
+    = $c->stash('openapi.op_spec') || $c->match->endpoint->pattern->defaults->{'openapi.op_spec'};
+  return $spec unless defined $path;
+  return $spec->get($path) if UNIVERSAL::isa($path, 'Mojo::JSON::Pointer');
+  return $spec;
 }
 
 sub _log {
