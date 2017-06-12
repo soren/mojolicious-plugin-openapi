@@ -15,7 +15,7 @@ plugin OpenAPI => {
     dummy => sub {
       my ($c, $config, $next) = @_;
       return $c->$next if $c->req->headers->authorization;
-      return $c->render(json => $config, status => 401);
+      return $c->render(openapi => $config, status => 401);
     },
   },
 };
