@@ -565,6 +565,8 @@ the terms of the Artistic License version 2.0.
 
 =item * L<Mojolicious::Plugin::OpenAPI::Guides::Tutorial>
 
+=item * L<Mojolicious::Plugin::OpenAPI::Guides::Security>
+
 =item * L<http://thorsen.pm/perl/programming/2015/07/05/mojolicious-swagger2.html>.
 
 =item * L<OpenAPI specification|https://openapis.org/specification>
