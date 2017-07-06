@@ -69,8 +69,8 @@ In this example, we have the "dummy" security handler:
       security => {
         dummy => sub {
           my ($c, $definition, $scopes, $cb) = @_;
-          return $cb->(1) if $c->req->headers->authorization;
-          return $cb->(0);
+          return $c->$cb(1) if $c->req->headers->authorization;
+          return $c->$cb(0);
         }
       }
     });

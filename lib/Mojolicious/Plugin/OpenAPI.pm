@@ -316,7 +316,7 @@ sub _security_action {
 
             # otherwise perform the check
             my $end = $delay->begin(0);
-            $c->$action($def, $scopes, sub { $end->($cache{$name} = shift) });
+            $c->$action($def, $scopes, sub { $end->($cache{$name} = $_[1]) });
           }
         },
         sub {
