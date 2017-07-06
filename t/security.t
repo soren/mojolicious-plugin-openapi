@@ -72,46 +72,46 @@ plugin OpenAPI => {
 };
 
 my $t = Test::Mojo->new;
-subtest 'global' => sub {
+{
   local %checks;
   $t->post_ok('/api/global' => json => {})->status_is(200)
     ->json_is('/ok' => 1);
   is_deeply \%checks, {pass1 => 1}, 'expected checks occurred';
-};
+}
 
-subtest 'simple local' => sub {
+{
   local %checks;
   $t->post_ok('/api/simple' => json => {})->status_is(200)
     ->json_is('/ok' => 1);
   is_deeply \%checks, {pass2 => 1}, 'expected checks occurred';
-};
+}
 
-subtest 'fail or pass' => sub {
+{
   local %checks;
   $t->post_ok('/api/fail_or_pass' => json => {})->status_is(200)
     ->json_is('/ok' => 1);
   is_deeply \%checks, {fail1 => 1, pass1 => 1}, 'expected checks occurred';
-};
+}
 
-subtest 'fail and pass' => sub {
+{
   local %checks;
   $t->post_ok('/api/fail_and_pass' => json => {})->status_is(401);
   is_deeply \%checks, {fail1 => 1, pass1 => 1}, 'expected checks occurred';
-};
+}
 
-subtest 'cache' => sub {
+{
   local %checks;
   $t->post_ok('/api/cache' => json => {})->status_is(200)
     ->json_is('/ok' => 1);
   is_deeply \%checks, {fail1 => 1, pass1 => 1, pass2 => 1}, 'expected checks occurred';
-};
+}
 
-subtest 'die' => sub {
+{
   local %checks;
   $t->post_ok('/api/die' => json => {})->status_is(500)
     ->json_has('/errors/0/message');
   is_deeply \%checks, {die => 1}, 'expected checks occurred';
-};
+}
 
 done_testing;
 
