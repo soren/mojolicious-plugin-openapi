@@ -33,6 +33,12 @@ post '/cache' => sub {
   },
   'cache';
 
+post '/die' => sub {
+  my $c = shift->openapi->valid_input or return;
+  $c->reply->openapi(200 => {ok => 1});
+  },
+  'die';
+
 our %checks;
 plugin OpenAPI => {
   url      => 'data://main/sec.json',
@@ -56,6 +62,11 @@ plugin OpenAPI => {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{fail2}++;
       $cb->(0);
+    },
+    die => sub {
+      my ($c, $def, $scopes, $cb) = @_;
+      $checks{die}++;
+      die 'Argh!';
     },
   },
 };
@@ -95,6 +106,13 @@ subtest 'cache' => sub {
   is_deeply \%checks, {fail1 => 1, pass1 => 1, pass2 => 1}, 'expected checks occurred';
 };
 
+subtest 'die' => sub {
+  local %checks;
+  $t->post_ok('/api/die' => json => {})->status_is(500)
+    ->json_has('/errors/0/message');
+  is_deeply \%checks, {die => 1}, 'expected checks occurred';
+};
+
 done_testing;
 
 __DATA__
@@ -124,6 +142,12 @@ __DATA__
       "description": "dummy"
     },
     "fail2": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "dummy"
+    },
+    "die": {
       "type": "apiKey",
       "name": "Authorization",
       "in": "header",
@@ -203,6 +227,22 @@ __DATA__
             "pass1": [],
             "pass2": []
           }
+        ],
+        "parameters": [
+          { "in": "body", "name": "body", "schema": { "type": "object" } }
+        ],
+        "responses": {
+          "200": {"description": "Echo response", "schema": { "type": "object" }},
+          "401": {"description": "Sorry mate"}
+        }
+      }
+    },
+    "/die": {
+      "post": {
+        "x-mojo-name": "die",
+        "security": [
+          {"die": []},
+          {"pass1": []}
         ],
         "parameters": [
           { "in": "body", "name": "body", "schema": { "type": "object" } }

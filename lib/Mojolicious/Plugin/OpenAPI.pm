@@ -305,7 +305,7 @@ sub _security_action {
         push @checks, $check;
       }
 
-      Mojo::IOLoop->delay(
+      $c->delay(
         sub{
           my $delay = shift;
           for my $check (@checks) {
@@ -324,7 +324,7 @@ sub _security_action {
           my $failed = !! grep { !$_ } @_;
           $failed ? $c->$wrapper : $c->continue;
         }
-      )->wait; #TODO catch errors render 500
+      );
     };
 
     $c->$wrapper;
