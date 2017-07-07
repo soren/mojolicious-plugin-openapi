@@ -322,20 +322,35 @@ sub _security_action {
             my ($name, $path, $action, $def, $scopes, $cached) = @$check;
 
             # a cached flag is a pass on this check
-            $delay->pass(undef) && next if $cached;
+            $delay->pass([$name, $path, undef]) && next if $cached;
 
             # otherwise perform the check
             my $end = $delay->begin(0);
             $c->$action($def, $scopes, sub {
               my ($c, $err) = @_;
-              push @errors, {message => $err, path => $path} if defined $err;
-              $end->($cache{$name} = $err);
+              $end->([$name, $path, $err]);
             });
           }
         },
         sub {
           my $delay = shift;
-          my $failed = !! grep { defined $_ } @_;
+          my $failed = 0;
+          for my $check (@_) {
+            my ($name, $path, $err) = @$check;
+
+            #cache result
+            $cache{$name} = $err;
+
+            # if check failed
+            if (defined $err) {
+              # note that these checks are ANDed,
+              # so if one fails then this ORed security requirement fails
+              $failed = 1;
+              push @errors, {message => $err, path => $path};
+            }
+          }
+
+          # if all checks passed, continue dispatch, otherwise try the next ORed security requirement
           $failed ? $c->$wrapper : $c->continue;
         }
       );

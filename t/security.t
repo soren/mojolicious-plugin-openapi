@@ -33,6 +33,12 @@ post '/multiple_fail' => sub {
   },
   'multiple_fail';
 
+post '/multiple_and_fail' => sub {
+  my $c = shift->openapi->valid_input or return;
+  $c->reply->openapi(200 => {ok => 1});
+  },
+  'multiple_and_fail';
+
 post '/cache' => sub {
   my $c = shift->openapi->valid_input or return;
   $c->reply->openapi(200 => {ok => 1});
@@ -62,7 +68,9 @@ plugin OpenAPI => {
     fail1 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{fail1}++;
-      $c->$cb('Failed fail1');
+      # this deferrment causes multiple_and_fail to report
+      # out of order unless order is carefully maintained
+      Mojo::IOLoop->next_tick(sub { $c->$cb('Failed fail1') });
     },
     fail2 => sub {
       my ($c, $def, $scopes, $cb) = @_;
@@ -115,6 +123,13 @@ my $t = Test::Mojo->new;
   local %checks;
   $t->post_ok('/api/multiple_fail' => json => {})->status_is(401)
     ->json_is({errors => [{message => 'Failed fail1', path => '/security/0/fail1'}, {message => 'Failed fail2', path => '/security/1/fail2'}]});
+  is_deeply \%checks, {fail1 => 1, fail2 => 1}, 'expected checks occurred';
+}
+
+{
+  local %checks;
+  $t->post_ok('/api/multiple_and_fail' => json => {})->status_is(401)
+    ->json_is({errors => [{message => 'Failed fail1', path => '/security/0/fail1'}, {message => 'Failed fail2', path => '/security/0/fail2'}]});
   is_deeply \%checks, {fail1 => 1, fail2 => 1}, 'expected checks occurred';
 }
 
@@ -253,6 +268,24 @@ __DATA__
         "security": [
           { "fail1": [] },
           { "fail2": [] }
+        ],
+        "parameters": [
+          { "in": "body", "name": "body", "schema": { "type": "object" } }
+        ],
+        "responses": {
+          "200": {"description": "Echo response", "schema": { "type": "object" }},
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
+        }
+      }
+    },
+    "/multiple_and_fail": {
+      "post": {
+        "x-mojo-name": "multiple_and_fail",
+        "security": [
+          {
+            "fail1": [],
+            "fail2": [] 
+          }
         ],
         "parameters": [
           { "in": "body", "name": "body", "schema": { "type": "object" } }
