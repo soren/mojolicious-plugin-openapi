@@ -326,10 +326,7 @@ sub _security_action {
 
             # otherwise perform the check
             my $end = $delay->begin(0);
-            $c->$action($def, $scopes, sub {
-              my ($c, $err) = @_;
-              $end->([$name, $path, $err]);
-            });
+            $c->$action($def, $scopes, sub { $end->([$name, $path, $_[1]]) });
           }
         },
         sub {
