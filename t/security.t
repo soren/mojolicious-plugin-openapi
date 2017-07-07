@@ -69,6 +69,11 @@ plugin OpenAPI => {
       $checks{fail2}++;
       $c->$cb('Failed fail2');
     },
+    '~fail/escape' => sub {
+      my ($c, $def, $scopes, $cb) = @_;
+      $checks{'~fail/escape'}++;
+      $c->$cb('Failed ~fail/escape');
+    },
     die => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{die}++;
@@ -102,15 +107,22 @@ my $t = Test::Mojo->new;
 {
   local %checks;
   $t->post_ok('/api/fail_and_pass' => json => {})->status_is(401)
-    ->json_is({errors => [{ message => 'Failed fail1' }]});
+    ->json_is({errors => [{message => 'Failed fail1', path => '/security/0/fail1'}]});
   is_deeply \%checks, {fail1 => 1, pass1 => 1}, 'expected checks occurred';
 }
 
 {
   local %checks;
   $t->post_ok('/api/multiple_fail' => json => {})->status_is(401)
-    ->json_is({errors => [{ message => 'Failed fail1' }, { message => 'Failed fail2' }]});
+    ->json_is({errors => [{message => 'Failed fail1', path => '/security/0/fail1'}, {message => 'Failed fail2', path => '/security/1/fail2'}]});
   is_deeply \%checks, {fail1 => 1, fail2 => 1}, 'expected checks occurred';
+}
+
+{
+  local %checks;
+  $t->post_ok('/api/fail_escape' => json => {})->status_is(401)
+    ->json_is({errors => [{message => 'Failed ~fail/escape', path => '/security/0/~0fail~1escape'}]});
+  is_deeply \%checks, {'~fail/escape' => 1}, 'expected checks occurred';
 }
 
 {
@@ -156,6 +168,12 @@ __DATA__
       "description": "dummy"
     },
     "fail2": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "dummy"
+    },
+    "~fail/escape": {
       "type": "apiKey",
       "name": "Authorization",
       "in": "header",
@@ -236,6 +254,19 @@ __DATA__
           { "fail1": [] },
           { "fail2": [] }
         ],
+        "parameters": [
+          { "in": "body", "name": "body", "schema": { "type": "object" } }
+        ],
+        "responses": {
+          "200": {"description": "Echo response", "schema": { "type": "object" }},
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
+        }
+      }
+    },
+    "/fail_escape": {
+      "post": {
+        "x-mojo-name": "fail_escape",
+        "security": [{"~fail/escape": []}],
         "parameters": [
           { "in": "body", "name": "body", "schema": { "type": "object" } }
         ],

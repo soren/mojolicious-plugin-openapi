@@ -158,6 +158,13 @@ sub _log {
   );
 }
 
+sub _pointer_escape {
+  my $str = shift;
+  $str =~ s/~/~0/g;
+  $str =~ s!/!~1!g;
+  return $str;
+}
+
 sub _reply {
   my $c      = shift;
   my $status = ref $_[0] ? 200 : shift;
@@ -276,12 +283,14 @@ sub _security_action {
     return $c->continue unless @security;
 
     my ($wrapper, @errors, %cache);
+    my $index = -1;
     $wrapper = sub {
       my $c = shift;
 
       # return (and don't continue) if no more requirement sets remain
       return $c->render(openapi => { errors => \@errors }, status => 401) unless @security;
       my $requirements = shift @security;
+      $index++;
 
       # check cache
       my @checks;
@@ -290,7 +299,8 @@ sub _security_action {
 
         # build a cache name by joining the security definition name and the scopes with 3 pipes, unlikely in the real world
         my $name = join '|||', $req, sort @$scopes;
-        my $check = [$name, $security_cb->{$req}, $definitions->{$req}, $scopes];
+        my $path = "/security/$index/". _pointer_escape($req);
+        my $check = [$name, $path, $security_cb->{$req}, $definitions->{$req}, $scopes];
 
         if (exists $cache{$name}) {
           my $cached = $cache{$name};
@@ -309,7 +319,7 @@ sub _security_action {
         sub{
           my $delay = shift;
           for my $check (@checks) {
-            my ($name, $action, $def, $scopes, $cached) = @$check;
+            my ($name, $path, $action, $def, $scopes, $cached) = @$check;
 
             # a cached flag is a pass on this check
             $delay->pass(undef) && next if $cached;
@@ -318,7 +328,7 @@ sub _security_action {
             my $end = $delay->begin(0);
             $c->$action($def, $scopes, sub {
               my ($c, $err) = @_;
-              push @errors, { message => $err } if defined $err;
+              push @errors, {message => $err, path => $path} if defined $err;
               $end->($cache{$name} = $err);
             });
           }
