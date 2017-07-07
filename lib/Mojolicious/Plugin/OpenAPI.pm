@@ -294,7 +294,7 @@ sub _security_action {
 
       # check cache
       my @checks;
-      for my $req (keys %$requirements) {
+      for my $req (sort keys %$requirements) {
         my $scopes = $requirements->{$req};
 
         # build a cache name by joining the security definition name and the scopes with 3 pipes, unlikely in the real world
