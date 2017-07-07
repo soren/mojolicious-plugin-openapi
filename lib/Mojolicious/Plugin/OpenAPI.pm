@@ -275,12 +275,12 @@ sub _security_action {
     # return and continue if a requirement set is empty
     return $c->continue unless @security;
 
-    my ($wrapper, %cache);
+    my ($wrapper, @errors, %cache);
     $wrapper = sub {
       my $c = shift;
 
       # return (and don't continue) if no more requirement sets remain
-      return $c->rendered(401) unless @security;
+      return $c->render(openapi => { errors => \@errors }, status => 401) unless @security;
       my $requirements = shift @security;
 
       # check cache
@@ -316,7 +316,11 @@ sub _security_action {
 
             # otherwise perform the check
             my $end = $delay->begin(0);
-            $c->$action($def, $scopes, sub { $end->($cache{$name} = $_[1]) });
+            $c->$action($def, $scopes, sub {
+              my ($c, $err) = @_;
+              push @errors, { message => $err } if defined $err;
+              $end->($cache{$name} = $err);
+            });
           }
         },
         sub {

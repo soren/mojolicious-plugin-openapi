@@ -27,6 +27,12 @@ post '/fail_and_pass' => sub {
   },
   'fail_and_pass';
 
+post '/multiple_fail' => sub {
+  my $c = shift->openapi->valid_input or return;
+  $c->reply->openapi(200 => {ok => 1});
+  },
+  'multiple_fail';
+
 post '/cache' => sub {
   my $c = shift->openapi->valid_input or return;
   $c->reply->openapi(200 => {ok => 1});
@@ -56,12 +62,12 @@ plugin OpenAPI => {
     fail1 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{fail1}++;
-      $c->$cb(1);
+      $c->$cb('Failed fail1');
     },
     fail2 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{fail2}++;
-      $c->$cb(1);
+      $c->$cb('Failed fail2');
     },
     die => sub {
       my ($c, $def, $scopes, $cb) = @_;
@@ -95,8 +101,16 @@ my $t = Test::Mojo->new;
 
 {
   local %checks;
-  $t->post_ok('/api/fail_and_pass' => json => {})->status_is(401);
+  $t->post_ok('/api/fail_and_pass' => json => {})->status_is(401)
+    ->json_is({errors => [{ message => 'Failed fail1' }]});
   is_deeply \%checks, {fail1 => 1, pass1 => 1}, 'expected checks occurred';
+}
+
+{
+  local %checks;
+  $t->post_ok('/api/multiple_fail' => json => {})->status_is(401)
+    ->json_is({errors => [{ message => 'Failed fail1' }, { message => 'Failed fail2' }]});
+  is_deeply \%checks, {fail1 => 1, fail2 => 1}, 'expected checks occurred';
 }
 
 {
@@ -164,7 +178,7 @@ __DATA__
         ],
         "responses": {
           "200": {"description": "Echo response", "schema": { "type": "object" }},
-          "401": {"description": "Sorry mate"}
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
         }
       }
     },
@@ -177,7 +191,7 @@ __DATA__
         ],
         "responses": {
           "200": {"description": "Echo response", "schema": { "type": "object" }},
-          "401": {"description": "Sorry mate"}
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
         }
       }
     },
@@ -193,7 +207,7 @@ __DATA__
         ],
         "responses": {
           "200": {"description": "Echo response", "schema": { "type": "object" }},
-          "401": {"description": "Sorry mate"}
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
         }
       }
     },
@@ -211,7 +225,23 @@ __DATA__
         ],
         "responses": {
           "200": {"description": "Echo response", "schema": { "type": "object" }},
-          "401": {"description": "Sorry mate"}
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
+        }
+      }
+    },
+    "/multiple_fail": {
+      "post": {
+        "x-mojo-name": "multiple_fail",
+        "security": [
+          { "fail1": [] },
+          { "fail2": [] }
+        ],
+        "parameters": [
+          { "in": "body", "name": "body", "schema": { "type": "object" } }
+        ],
+        "responses": {
+          "200": {"description": "Echo response", "schema": { "type": "object" }},
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
         }
       }
     },
@@ -233,7 +263,7 @@ __DATA__
         ],
         "responses": {
           "200": {"description": "Echo response", "schema": { "type": "object" }},
-          "401": {"description": "Sorry mate"}
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
         }
       }
     },
@@ -249,7 +279,24 @@ __DATA__
         ],
         "responses": {
           "200": {"description": "Echo response", "schema": { "type": "object" }},
-          "401": {"description": "Sorry mate"}
+          "401": {"description": "Sorry mate", "schema": { "$ref": "#/definitions/Error" }}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Error": {
+      "type": "object",
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "required": ["message"],
+            "properties": {
+              "message": { "type": "string", "description": "Human readable description of the error" },
+              "path": { "type": "string", "description": "JSON pointer to the input data where the error occur" }
+            }
+          }
         }
       }
     }

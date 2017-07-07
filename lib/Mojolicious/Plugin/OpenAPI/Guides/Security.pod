@@ -81,10 +81,15 @@ In this example, we have the "dummy" security handler:
 C<$c> is a L<Mojolicious::Controller> object. C<$definition> is the security
 definition from C</securityDefinitions>. C<$scopes> is the Oauth scopes, which
 in this case is just an empty array ref, but it will contain the value for
-"security" under the given HTTP method. Call C<$cb> with C<undef> or no
-argument at all to indicate pass. Call C<$cb> with a defined value to indicate
-that the check has failed. Note that the callback must be called or the
-dispatch will hang.
+"security" under the given HTTP method.
+
+Call C<$cb> with C<undef> or no argument at all to indicate pass. Call C<$cb>
+with a defined value (usually a string) to indicate that the check has failed.
+When none of the sets of security restrictions are satisfied, the standard
+OpenAPI structure is built using the values passed to the callbacks as the
+messages and rendered to the client with a status of 401.
+
+Note that the callback must be called or the dispatch will hang.
 
 B<TODO>:
 If after all of the checks have been performed, no set of requirements are
