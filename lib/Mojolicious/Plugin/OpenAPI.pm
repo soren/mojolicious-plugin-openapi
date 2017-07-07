@@ -295,11 +295,11 @@ sub _security_action {
         if (exists $cache{$name}) {
           my $cached = $cache{$name};
 
-          # a cached false is an immediate overall fail, move on
-          return $c->$wrapper unless $cached;
+          # a defined cached is an immediate overall fail, move on
+          return $c->$wrapper if defined $cached;
 
-          # otherwise store the true value to pass later
-          push @$check, $cached;
+          # otherwise flag to pass later
+          push @$check, 1;
         }
 
         push @checks, $check;
@@ -311,8 +311,8 @@ sub _security_action {
           for my $check (@checks) {
             my ($name, $action, $def, $scopes, $cached) = @$check;
 
-            # a cached true is a pass on this check
-            $delay->pass($cached) && next if $cached;
+            # a cached flag is a pass on this check
+            $delay->pass(undef) && next if $cached;
 
             # otherwise perform the check
             my $end = $delay->begin(0);
@@ -321,7 +321,7 @@ sub _security_action {
         },
         sub {
           my $delay = shift;
-          my $failed = !! grep { !$_ } @_;
+          my $failed = !! grep { defined $_ } @_;
           $failed ? $c->$wrapper : $c->continue;
         }
       );

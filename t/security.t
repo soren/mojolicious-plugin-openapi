@@ -46,22 +46,22 @@ plugin OpenAPI => {
     pass1 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{pass1}++;
-      $c->$cb(1);
+      $c->$cb();
     },
     pass2 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{pass2}++;
-      $c->$cb(1);
+      $c->$cb();
     },
     fail1 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{fail1}++;
-      $c->$cb(0);
+      $c->$cb(1);
     },
     fail2 => sub {
       my ($c, $def, $scopes, $cb) = @_;
       $checks{fail2}++;
-      $c->$cb(0);
+      $c->$cb(1);
     },
     die => sub {
       my ($c, $def, $scopes, $cb) = @_;
